@@ -56,6 +56,7 @@ export type Account = {
     expires_at: number | null;
     expires_in: number | null;
     ext_expires_in: number | null;
+    refresh_expires_in: number | null;
     token_type: string | null;
     scope: string | null;
     id_token: string | null;

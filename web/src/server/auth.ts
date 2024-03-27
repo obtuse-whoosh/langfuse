@@ -11,13 +11,14 @@ import { verifyPassword } from "@/src/features/auth/lib/emailPassword";
 import { parseFlags } from "@/src/features/feature-flags/utils";
 import { env } from "@/src/env.mjs";
 import { createProjectMembershipsOnSignup } from "@/src/features/auth/lib/createProjectMembershipsOnSignup";
-import { type Adapter } from "next-auth/adapters";
+import { AdapterAccount, type Adapter } from "next-auth/adapters";
 
 // Providers
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import AzureADProvider from "next-auth/providers/azure-ad";
+import KeycloakProvider from "next-auth/providers/keycloak";
 import { type Provider } from "next-auth/providers/index";
 import { getCookieName, cookieOptions } from "./utils/cookies";
 
@@ -113,10 +114,30 @@ if (
     }),
   );
 
+if (
+  env.AUTH_KEYCLOAK_CLIENT_ID &&
+  env.AUTH_KEYCLOAK_CLIENT_SECRET &&
+  env.AUTH_KEYCLOAK_ISSUER
+)
+  providers.push(
+    KeycloakProvider({
+      clientId: env.AUTH_KEYCLOAK_CLIENT_ID,
+      clientSecret: env.AUTH_KEYCLOAK_CLIENT_SECRET,
+      issuer: env.AUTH_KEYCLOAK_ISSUER,
+      allowDangerousEmailAccountLinking:
+        env.AUTH_KEYCLOAK_ALLOW_ACCOUNT_LINKING === "true",
+    }),
+  );
+
 // Extend Prisma Adapter
 const prismaAdapter = PrismaAdapter(prisma);
 const extendedPrismaAdapter: Adapter = {
   ...prismaAdapter,
+  // see: https://github.com/nextauthjs/next-auth/issues/7655
+  linkAccount: (data) => {
+    delete data["not-before-policy"]; // Needed for Keycloak auth
+    return prisma.account.create({ data }) as unknown as AdapterAccount;
+  },
   async createUser(profile) {
     if (!prismaAdapter.createUser)
       throw new Error("createUser not implemented");

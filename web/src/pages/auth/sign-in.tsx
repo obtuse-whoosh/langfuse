@@ -14,6 +14,7 @@ import { env } from "@/src/env.mjs";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
+import { SiOkta } from "react-icons/si";
 import { TbBrandAzure } from "react-icons/tb";
 import { signIn } from "next-auth/react";
 import Head from "next/head";
@@ -41,6 +42,7 @@ export type PageProps = {
     google: boolean;
     github: boolean;
     azureAd: boolean;
+    keycloak: boolean;
   };
 };
 
@@ -61,6 +63,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
           env.AUTH_AZURE_AD_CLIENT_ID !== undefined &&
           env.AUTH_AZURE_AD_CLIENT_SECRET !== undefined &&
           env.AUTH_AZURE_AD_TENANT_ID !== undefined,
+        keycloak:
+          env.AUTH_KEYCLOAK_CLIENT_ID !== undefined &&
+          env.AUTH_KEYCLOAK_CLIENT_SECRET !== undefined &&
+          env.AUTH_KEYCLOAK_ISSUER !== undefined,
       },
     },
   };
@@ -115,6 +121,18 @@ export function SSOButtons({
             >
               <TbBrandAzure className="mr-3" size={18} />
               {action} with Azure AD
+            </Button>
+          )}
+          {authProviders.keycloak && (
+            <Button
+              onClick={() => {
+                posthog.capture("sign_in:keycloak_button_click");
+                void signIn("keycloak");
+              }}
+              variant="secondary"
+            >
+              <SiOkta className="mr-3" size={18} />
+              {action} with KeyCloak
             </Button>
           )}
         </div>
